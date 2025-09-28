@@ -148,7 +148,8 @@ func ErrorCodef(code StatusCode, format string, args ...any) error {
 
 // Error with a publicly visible message.
 func ErrorMessagef(code StatusCode, message string, args ...any) error {
-	return WithCode(code, fmt.Sprintf(message, args...), withStackSkip(fmt.Errorf(message, args...), 1))
+	err := fmt.Errorf(message, args...)
+	return WithCode(code, err.Error(), withStackSkip(err, 1))
 }
 
 func ErrorMessage(code StatusCode, message string) error {
