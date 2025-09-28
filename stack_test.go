@@ -1,14 +1,16 @@
-package errors
+package errors_test
 
 import (
 	"fmt"
 	"regexp"
 	"strings"
 	"testing"
+
+	"mko.re/go/errors"
 )
 
 func Bar() error {
-	return WithStack(fmt.Errorf("my error message"))
+	return errors.WithStack(errors.New("my error message"))
 }
 
 func Foo() error {
@@ -16,6 +18,8 @@ func Foo() error {
 }
 
 func Test_WithStack(t *testing.T) {
+	t.Parallel()
+
 	err := Foo()
 
 	simple := fmt.Sprintf("%v", err)
@@ -25,11 +29,11 @@ func Test_WithStack(t *testing.T) {
 
 	verbose := fmt.Sprintf("%+v", err)
 	want := `my error message
-MODULE/errors.Bar
+MODULE/errors_test.Bar
 	/PATH/stack_test.go:LINE
-MODULE/errors.Foo
+MODULE/errors_test.Foo
 	/PATH/stack_test.go:LINE
-MODULE/errors.Test_WithStack
+MODULE/errors_test.Test_WithStack
 	/PATH/stack_test.go:LINE`
 	if want != cleanupStackTrace(verbose) {
 		t.Errorf("expected:\n%s\ngot:\n%s", want, cleanupStackTrace(verbose))

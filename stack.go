@@ -8,41 +8,45 @@ import (
 )
 
 func WithStack(err error) error {
+	return withStackSkip(err, 1)
+}
+
+func withStackSkip(err error, skip int) error {
 	if err == nil {
 		return nil
 	}
-	return &withStack{
+	return &withStackError{
 		err,
-		callers(0),
+		callers(skip),
 	}
 }
 
-// Compile-time interface implementation checks
+// Compile-time interface implementation checks.
 var (
-	_ error         = (*withStack)(nil)
-	_ fmt.Formatter = (*withStack)(nil)
+	_ error         = (*withStackError)(nil)
+	_ fmt.Formatter = (*withStackError)(nil)
 )
 
-type withStack struct {
+type withStackError struct {
 	error
 	*stack
 }
 
-func (w *withStack) Unwrap() error { return w.error }
+func (w *withStackError) Unwrap() error { return w.error }
 
-func (w *withStack) Format(s fmt.State, verb rune) {
+func (w *withStackError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v", w.Unwrap())
+			_, _ = fmt.Fprintf(s, "%+v", w.Unwrap())
 			w.stack.Format(s, verb)
 			return
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, w.Error())
+		_, _ = io.WriteString(s, w.Error())
 	case 'q':
-		fmt.Fprintf(s, "%q", w.Error())
+		_, _ = fmt.Fprintf(s, "%q", w.Error())
 	}
 }
 
@@ -60,7 +64,7 @@ func (s *stack) Format(st fmt.State, verb rune) {
 	frames := runtime.CallersFrames(*s)
 	for {
 		frame, more := frames.Next()
-		fmt.Fprintf(st, "\n%s\n\t%s:%d", frame.Function, frame.File, frame.Line)
+		_, _ = fmt.Fprintf(st, "\n%s\n\t%s:%d", frame.Function, frame.File, frame.Line)
 		if !more {
 			break
 		}
@@ -68,6 +72,6 @@ func (s *stack) Format(st fmt.State, verb rune) {
 }
 
 func HasStack(err error) bool {
-	var ws withStack
+	var ws withStackError
 	return errors.As(err, &ws)
 }
